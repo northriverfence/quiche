@@ -1,4 +1,4 @@
-FROM rust:1.85 AS build
+FROM rust:slim-trixie AS build
 
 WORKDIR /build
 
@@ -24,8 +24,8 @@ RUN cargo build --release --manifest-path apps/Cargo.toml
 ##
 FROM debian:latest AS quiche-base
 
-RUN apt-get update && apt-get install -y ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates &&
+     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build \
      /build/target/release/quiche-client \

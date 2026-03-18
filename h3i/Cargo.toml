@@ -19,7 +19,7 @@ async = ["dep:buffer-pool", "dep:tokio", "dep:tokio-quiche"]
 [dependencies]
 clap = "3"
 env_logger = { workspace = true }
-inquire = "0.9.1"
+inquire = "0.9.4"
 log = { workspace = true, features = ["std"] }
 mio = { workspace = true, features = ["net", "os-poll"] }
 multimap = "0.10"
@@ -35,5 +35,5 @@ url = { workspace = true }
 
 # Dependencies for async client
 buffer-pool = { optional = true, workspace = true }
-tokio = { version = "1.44", features = ["net", "sync", "time"], optional = true }
+tokio = { version = "1.50", features = ["net", "sync", "time"], optional = true }
 tokio-quiche = { features = ["capture_keylogs", "quiche_internal"], optional = true, workspace = true }

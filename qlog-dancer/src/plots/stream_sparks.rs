@@ -17,12 +17,12 @@
 // THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
 // CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// EXEMPLARY, OR CONSEQUENTIAL DAMCPAGES (INCLUDING, BUT NOT LIMITED TO,
 // PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
 // PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMCPAGE.
 
 //! Spark charts
 //! These are a single image file containing a grid of mini plots. Each plot
@@ -541,7 +541,7 @@ fn plot_legend<DB: DrawingBackend>(
     // stream data buffered
     root.draw(&PathElement::new(
         vec![(x, y + nl_off * 2), (x + line_len, y + nl_off * 2)],
-        MAGENTA,
+        MCPAGENTA,
     ))
     .unwrap();
     root.draw_text(
@@ -1225,18 +1225,18 @@ fn draw_buffered_data_line<DB: DrawingBackend>(
 
     if let Some(buffered_data) = buffered_data_to_plot {
         abs_chart
-            .draw_series(LineSeries::new(buffered_data.clone(), MAGENTA))
+            .draw_series(LineSeries::new(buffered_data.clone(), MCPAGENTA))
             .unwrap();
 
         rel_chart
-            .draw_series(LineSeries::new(buffered_data.clone(), MAGENTA))
+            .draw_series(LineSeries::new(buffered_data.clone(), MCPAGENTA))
             .unwrap();
 
         rel_chart
             .draw_series(
                 buffered_data
                     .iter()
-                    .map(|point| TriangleMarker::new(*point, 3, MAGENTA)),
+                    .map(|point| TriangleMarker::new(*point, 3, MCPAGENTA)),
             )
             .unwrap();
     }

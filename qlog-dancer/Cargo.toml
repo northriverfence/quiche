@@ -17,7 +17,7 @@ futures-util = { version = "0.3", features = ["io", "sink"] }
 js-sys = "0.3"
 log = { workspace = true }
 netlog = { workspace = true }
-plotters = "0.3.4"
+plotters = "0.3.7"
 qlog = { workspace = true }
 regex = { workspace = true }
 serde = { workspace = true }

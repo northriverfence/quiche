@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Cloudflare, Inc.
+// Copyright (C) 2022, Cloudflare, Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -17,34 +17,38 @@
 // THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
 // CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// EXEMPLARY, OR CONSEQUENTIAL DAMCPAGES (INCLUDING, BUT NOT LIMITED TO,
 // PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
 // PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMCPAGE.
 
-use quiche_apps::args::*;
+use super::*;
 
-use quiche_apps::common::*;
+use std::time::Instant;
 
-use quiche_apps::client::*;
+// BBR2 Functions when trasmitting packets.
+//
+// 4.2.2.  Per-Transmit Steps
+pub fn bbr2_on_transmit(
+    r: &mut Congestion, bytes_in_flight: usize, now: Instant,
+) {
+    bbr2_handle_restart_from_idle(r, bytes_in_flight, now);
+}
 
-fn main() {
-    env_logger::builder().format_timestamp_nanos().init();
+// 4.4.3.  Logic
+fn bbr2_handle_restart_from_idle(
+    r: &mut Congestion, bytes_in_flight: usize, now: Instant,
+) {
+    if bytes_in_flight == 0 && r.delivery_rate.app_limited() {
+        r.bbr2_state.idle_restart = true;
+        r.bbr2_state.extra_acked_interval_start = now;
 
-    // Parse CLI parameters.
-    let docopt = docopt::Docopt::new(CLIENT_USAGE).unwrap();
-    let conn_args = CommonArgs::with_docopt(&docopt);
-    let args = ClientArgs::with_docopt(&docopt);
-
-    match connect(args, conn_args, stdout_sink) {
-        Err(ClientError::HandshakeFail) => std::process::exit(-1),
-
-        Err(ClientError::HttpFail) => std::process::exit(-2),
-
-        Err(ClientError::Other(e)) => panic!("{}", e),
-
-        Ok(_) => (),
+        if per_ack::bbr2_is_in_a_probe_bw_state(r) {
+            pacing::bbr2_set_pacing_rate_with_gain(r, 1.0);
+        } else if r.bbr2_state.state == BBR2StateMachine::ProbeRTT {
+            per_ack::bbr2_check_probe_rtt_done(r, now);
+        }
     }
 }
