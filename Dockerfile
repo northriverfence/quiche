@@ -1,4 +1,4 @@
-FROM rust:slim-trixie AS build
+FROM rust:1.94.0-slim-bookworm
 
 WORKDIR /build
 
