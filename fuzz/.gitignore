@@ -1,2 +1,6 @@
 target
 artifacts
+
+# Ignore Python virtual environments
+venv/
+.venv/
