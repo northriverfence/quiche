@@ -1,22 +1,24 @@
-on: [push, pull_request]
-
-name: Stable
-
+# Unified stable/nightly Rust checks and Semgrep. Docs/Docker deployment stays in deploy.yml.
+name: Consolidated CI and Security
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 permissions:
   contents: read
   pull-requests: write
-
-env:
-  DEFAULT_OPTIONS: "--features=async,ffi,qlog --workspace"
-  NO_BORING_OPTIONS: "--features=ffi,qlog --workspace --exclude h3i --exclude tokio-quiche"
-  RUSTFLAGS: "-D warnings"
-  RUSTTOOLCHAIN: "stable"
-
 concurrency:
-  group: ${{ github.ref }}-stable
+  group: ${{ github.ref }}-quiche-ci
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
-
+env:
+  DEFAULT_OPTIONS: '--features=async,ffi,qlog --workspace'
+  NO_BORING_OPTIONS: '--features=ffi,qlog --workspace --exclude h3i --exclude tokio-quiche'
+  RUSTFLAGS: '-D warnings'
+  RUSTTOOLCHAIN: stable
 jobs:
+  # Rust stable checks
   quiche:
     runs-on: ubuntu-latest
     strategy:
@@ -27,7 +29,7 @@ jobs:
           - "openssl"
     # Only run on "pull_request" event for external PRs. This is to avoid
     # duplicate builds for PRs created from internal branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6.0.2
@@ -115,7 +117,7 @@ jobs:
     runs-on: ${{ matrix.target }}
     # Only run on "pull_request" event for external PRs. This is to avoid
     # duplicate builds for PRs created from internal branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6.0.2
@@ -142,7 +144,7 @@ jobs:
         target: ["x86_64-apple-ios", "aarch64-apple-ios"]
     # Only run on "pull_request" event for external PRs. This is to avoid
     # duplicate builds for PRs created from internal branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     env:
       IPHONEOS_DEPLOYMENT_TARGET: "10.0"
     steps:
@@ -178,7 +180,7 @@ jobs:
       BINDGEN_EXTRA_CLANG_ARGS: ${{ matrix.cflags }}
     # Only run on "pull_request" event for external PRs. This is to avoid
     # duplicate builds for PRs created from internal branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6.0.2
@@ -224,7 +226,7 @@ jobs:
         target: ["aarch64-unknown-linux-gnu","armv7-unknown-linux-gnueabihf","i686-unknown-linux-gnu"]
     # Only run on "pull_request" event for external PRs. This is to avoid
     # duplicate builds for PRs created from internal branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6.0.2
@@ -249,7 +251,7 @@ jobs:
     runs-on: ubuntu-latest
     # Only run on "pull_request" event for external PRs. This is to avoid
     # duplicate builds for PRs created from internal branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6.0.2
@@ -272,7 +274,7 @@ jobs:
     runs-on: ubuntu-latest
     # Only run on "pull_request" event for external PRs. This is to avoid
     # duplicate builds for PRs created from internal branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6.0.2
@@ -300,7 +302,7 @@ jobs:
             arch: "x86"
     # Only run on "pull_request" event for external PRs. This is to avoid
     # duplicate builds for PRs created from internal branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6.0.2
@@ -318,3 +320,153 @@ jobs:
 
       - name: Run cargo ndk
         run: cargo ndk --manifest-path quiche/Cargo.toml --target ${{ matrix.arch }} --platform ${{ env.API_LEVEL }} -- build --verbose --features ffi
+
+  # Nightly-specific overrides are applied per job
+  quiche_nightly:
+    env:
+      RUSTTOOLCHAIN: nightly
+      RUSTDOCFLAGS: '--cfg docsrs'
+      FEATURES: 'async,ffi,qlog'
+    runs-on: ubuntu-latest
+    # Only run on "pull_request" event for external PRs. This is to avoid
+    # duplicate builds for PRs created from internal branches.
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6.0.2
+        with:
+          submodules: 'recursive'
+
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUSTTOOLCHAIN }}
+
+      - name: Install qlog-dancer dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libexpat1-dev libfreetype6-dev libfontconfig1-dev
+
+      - name: Run cargo test
+        run: cargo test --verbose --all-targets --features=boringssl-boring-crate,${{ env.FEATURES }}
+
+      # Need to run doc tests separately.
+      # (https://github.com/rust-lang/cargo/issues/6669)
+      - name: Run cargo doc test
+        run: cargo test --verbose --doc --features=boringssl-boring-crate,${{ env.FEATURES }}
+
+      # NOTE: this is disabled as it fails when building changes that bump
+      # version of local crates (e.g. when doing a `qlog` release) that have not
+      # been published yet, and we couldn't find a workaround.
+      #
+      # - name: Run cargo package
+      #   run: cargo package --verbose --workspace --exclude=quiche_apps --allow-dirty
+
+      - name: Run cargo doc
+        run: cargo doc --no-deps --all-features --document-private-items
+
+      - name: Build C examples
+        run: |
+          sudo apt-get install libev-dev uthash-dev
+          make -C quiche/examples
+
+  fuzz:
+    env:
+      RUSTTOOLCHAIN: nightly
+      RUSTDOCFLAGS: '--cfg docsrs'
+      FEATURES: 'async,ffi,qlog'
+    runs-on: ubuntu-latest
+    # Only run on "pull_request" event for external PRs. This is to avoid
+    # duplicate builds for PRs created from internal branches.
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6.0.2
+        with:
+          submodules: 'recursive'
+
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUSTTOOLCHAIN }}
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+
+      - name: Run cargo fuzz for packet_recv_client
+        run: cargo fuzz run packet_recv_client -- -runs=1
+
+      - name: Run cargo fuzz for packet_recv_server
+        run: cargo fuzz run packet_recv_server -- -runs=1
+
+      - name: Run cargo fuzz for qpack_decode
+        run: cargo fuzz run qpack_decode -- -runs=1
+
+  http3_test_nightly:
+    env:
+      RUSTTOOLCHAIN: nightly
+      RUSTDOCFLAGS: '--cfg docsrs'
+      FEATURES: 'async,ffi,qlog'
+    runs-on: ubuntu-latest
+    # Only run on "pull_request" event for external PRs. This is to avoid
+    # duplicate builds for PRs created from internal branches.
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6.0.2
+        with:
+          submodules: 'recursive'
+
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUSTTOOLCHAIN }}
+
+      - name: Run cargo test
+        run: cargo test --no-run --verbose --manifest-path=tools/http3_test/Cargo.toml
+
+  fmt:
+    env:
+      RUSTTOOLCHAIN: nightly
+      RUSTDOCFLAGS: '--cfg docsrs'
+      FEATURES: 'async,ffi,qlog'
+    runs-on: ubuntu-latest
+    # Only run on "pull_request" event for external PRs. This is to avoid
+    # duplicate builds for PRs created from internal branches.
+    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6.0.2
+        with:
+          submodules: 'recursive'
+
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUSTTOOLCHAIN }}
+          components: rustfmt
+
+      - name: Run cargo fmt - quiche
+        run: cargo fmt -- --check
+
+      - name: Run cargo fmt - http3_test
+        run: cargo fmt --manifest-path=tools/http3_test/Cargo.toml -- --check
+
+      - name: Run cargo fmt - fuzz
+        run: cargo fmt --manifest-path=fuzz/Cargo.toml -- --check
+
+  # Security scan
+  semgrep:
+    if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))) }}
+    name: semgrep/ci
+    runs-on: ubuntu-latest
+    env:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+      SEMGREP_URL: https://cloudflare.semgrep.dev
+      SEMGREP_APP_URL: https://cloudflare.semgrep.dev
+      SEMGREP_VERSION_CHECK_URL: https://cloudflare.semgrep.dev/api/check-version
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - run: semgrep ci
